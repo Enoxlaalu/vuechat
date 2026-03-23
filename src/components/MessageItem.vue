@@ -2,7 +2,7 @@
 // defineProps — объявляем что компонент принимает снаружи.
 // defineEmits — объявляем какие события компонент может генерировать наверх.
 // Обе функции доступны в <script setup> без импорта.
-const props = defineProps({
+defineProps({
   message: {
     type: Object,
     required: true,

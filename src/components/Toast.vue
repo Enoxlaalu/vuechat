@@ -5,6 +5,8 @@ defineProps({
     required: true,
   },
 })
+
+const emit = defineEmits(['dismiss'])
 </script>
 
 <template>
@@ -13,7 +15,12 @@ defineProps({
        и не наследовать overflow:hidden или z-index от родителей. -->
   <Teleport to="body">
     <TransitionGroup name="toast" tag="div" class="toast-container">
-      <div v-for="t in toasts" :key="t.id" class="toast">
+      <div
+        v-for="t in toasts"
+        :key="t.id"
+        class="toast"
+        @animationend.self="e => e.animationName === 'toast-life' && emit('dismiss', t.id)"
+      >
         {{ t.text }}
       </div>
     </TransitionGroup>
@@ -40,6 +47,7 @@ defineProps({
   max-width: 320px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   border-left: 3px solid #cba6f7;
+  animation: toast-life 4s ease forwards;
 }
 
 .toast-enter-from {
@@ -56,15 +64,8 @@ defineProps({
   transform: translateX(0);
 }
 
-.toast-leave-from {
-  opacity: 1;
-}
-
-.toast-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.toast-leave-to {
-  opacity: 0;
+@keyframes toast-life {
+  0%, 80% { opacity: 1; }
+  100% { opacity: 0; }
 }
 </style>

@@ -5,12 +5,11 @@ export function useNotifications({ on }) {
   const toasts = ref([]) // [{ id, text }, ...]
 
   function toast(text) {
-    const id = Date.now()
-    toasts.value.push({ id, text })
-    // Убираем тост через 4 секунды
-    setTimeout(() => {
-      toasts.value = toasts.value.filter((t) => t.id !== id)
-    }, 4000)
+    toasts.value.push({ id: crypto.randomUUID(), text })
+  }
+
+  function dismissToast(id) {
+    toasts.value = toasts.value.filter((t) => t.id !== id)
   }
 
   function clearUnread(room) {
@@ -23,5 +22,5 @@ export function useNotifications({ on }) {
     toast(`${from} в #${room}: ${text.slice(0, 40)}`)
   })
 
-  return { unread, toasts, clearUnread, toast }
+  return { unread, toasts, clearUnread, toast, dismissToast }
 }

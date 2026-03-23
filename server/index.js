@@ -1,4 +1,7 @@
 import { WebSocketServer } from 'ws'
+import { randomUUID } from 'crypto'
+
+const ALLOWED_EMOJI = ['👍', '❤️', '😂', '😮', '😢']
 
 const PORT = 8080
 
@@ -65,7 +68,9 @@ wss.on('connection', (ws) => {
     // type: 'auth' — первое сообщение от клиента, устанавливает имя пользователя.
     // Сервер отвечает списком доступных комнат.
     if (msg.type === 'auth') {
-      client.username = msg.username
+      const username = String(msg.username ?? '').trim().slice(0, 32)
+      if (!username) return
+      client.username = username
       send(ws, {
         type: 'auth_ok',
         rooms: [...rooms.keys()],
@@ -79,7 +84,9 @@ wss.on('connection', (ws) => {
     // 3. Отдаём историю сообщений.
     // 4. Рассылаем обновлённый список пользователей.
     if (msg.type === 'join') {
-      const roomId = msg.room
+      if (!client.username) return
+      const roomId = String(msg.room ?? '').trim().slice(0, 32)
+      if (!roomId) return
 
       // Покидаем старую комнату
       if (client.room) {
@@ -108,14 +115,16 @@ wss.on('connection', (ws) => {
     // type: 'message' — обычное текстовое сообщение.
     // Сервер добавляет from и timestamp, сохраняет в историю, рассылает в комнату.
     if (msg.type === 'message') {
-      if (!client.room) return
+      if (!client.room || !client.username) return
+      const text = String(msg.text ?? '').trim().slice(0, 2000)
+      if (!text) return
 
       const message = {
         type: 'message',
-        id: msg.id,
+        id: randomUUID(),
         from: client.username,
         room: client.room,
-        text: msg.text,
+        text,
         timestamp: Date.now(),
         reactions: {},
       }
@@ -136,6 +145,7 @@ wss.on('connection', (ws) => {
     // Сервер находит сообщение в истории, обновляет счётчик, рассылает в комнату.
     if (msg.type === 'react') {
       if (!client.room) return
+      if (typeof msg.messageId !== 'string' || !ALLOWED_EMOJI.includes(msg.emoji)) return
       const room = rooms.get(client.room)
       const message = room.messages.find((m) => m.id === msg.messageId)
       if (!message) return
@@ -167,8 +177,8 @@ wss.on('connection', (ws) => {
     // type: 'create' — создать новую комнату.
     // Рассылаем всем подключённым клиентам (не только в комнате).
     if (msg.type === 'create') {
-      const roomId = msg.room
-      if (rooms.has(roomId)) return
+      const roomId = String(msg.room ?? '').trim().slice(0, 32)
+      if (!roomId || rooms.has(roomId)) return
       rooms.set(roomId, { name: roomId, messages: [], members: new Set() })
       for (const client of wss.clients) {
         if (client.readyState === 1) {

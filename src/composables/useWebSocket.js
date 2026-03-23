@@ -5,6 +5,7 @@ export function useWebSocket(url) {
   // Vue не должен отслеживать его свойства — нам важен только сам факт замены ws.value.
   const ws = shallowRef(null)
   const connected = ref(false)
+  let closing = false
 
   // Реестр обработчиков: { 'message': [fn1, fn2], 'typing': [fn3], ... }
   // Обычный объект, не реактивный — нам не нужно отслеживать его изменения.
@@ -20,12 +21,17 @@ export function useWebSocket(url) {
     ws.value.onclose = () => {
       connected.value = false
       // Автореконнект: через 3 секунды пробуем подключиться снова.
-      // Это работает и при первоначальном разрыве, и если сервер перезапустился.
-      setTimeout(connect, 3000)
+      // closing=true означает намеренное закрытие (onUnmounted) — реконнект не нужен.
+      if (!closing) setTimeout(connect, 3000)
     }
 
     ws.value.onmessage = (event) => {
-      const msg = JSON.parse(event.data)
+      let msg
+      try {
+        msg = JSON.parse(event.data)
+      } catch {
+        return
+      }
       // Вызываем все обработчики, зарегистрированные для данного типа сообщения.
       handlers[msg.type]?.forEach(fn => fn(msg))
     }
@@ -45,7 +51,7 @@ export function useWebSocket(url) {
 
   // Lifecycle cleanup: когда компонент, который вызвал useWebSocket, размонтируется —
   // закрываем соединение, чтобы не оставлять висящих коннектов.
-  onUnmounted(() => ws.value?.close())
+  onUnmounted(() => { closing = true; ws.value?.close() })
 
   return { connected, connect, on, send }
 }

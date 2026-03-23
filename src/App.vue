@@ -15,7 +15,7 @@ provide('ws', { connected, on, send })
 const chat = useChat({ on, send })
 provide('chat', chat)
 
-const { unread, toasts, clearUnread } = useNotifications({ on })
+const { unread, toasts, clearUnread, dismissToast } = useNotifications({ on })
 
 // clearUnread пробрасываем в chat через provide чтобы Sidebar мог вызвать его при смене комнаты
 provide('unread', { unread, clearUnread })
@@ -38,7 +38,7 @@ watch(connected, (isConnected) => {
   if (isConnected) {
     send({ type: 'auth', username: username.value.trim() })
   }
-}, { once: true })
+})
 </script>
 
 <template>
@@ -54,6 +54,7 @@ watch(connected, (isConnected) => {
   </div>
 
   <div v-else class="layout">
+    <div v-if="!connected" class="reconnecting">Переподключение...</div>
     <Sidebar />
     <main class="main">
       <MessageList />
@@ -63,7 +64,7 @@ watch(connected, (isConnected) => {
   </div>
 
   <!-- Toast рендерится через Teleport в <body>, вне layout -->
-  <Toast :toasts="toasts" />
+  <Toast :toasts="toasts" @dismiss="dismissToast" />
 </template>
 
 <style scoped>
@@ -126,5 +127,19 @@ watch(connected, (isConnected) => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.reconnecting {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: #f38ba8;
+  color: #1e1e2e;
+  text-align: center;
+  padding: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 100;
 }
 </style>

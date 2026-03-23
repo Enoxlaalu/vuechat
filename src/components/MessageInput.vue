@@ -1,11 +1,7 @@
 <script setup>
 import { ref, inject } from 'vue'
-import { useTyping } from '../composables/useTyping'
 
-const { sendMessage, currentRoom } = inject('chat')
-const { on, send } = inject('ws')
-
-const { typingText, onInput } = useTyping({ on, send })
+const { sendMessage, currentRoom, typingText, onInput } = inject('chat')
 
 const text = ref('')
 
