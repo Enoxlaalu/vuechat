@@ -1,15 +1,14 @@
-import { ref, shallowReactive, computed, onUnmounted } from 'vue'
+import { ref, reactive, computed, onUnmounted } from 'vue'
 
 // on и send передаём явно — inject не работает в том же компоненте, где вызван provide.
 export function useChat({ on, send }) {
   const rooms = ref([]) // список всех комнат ['general', 'random', ...]
   const currentRoom = ref(null) // имя текущей комнаты
-  const messages = ref([]) // сообщения текущей комнаты
 
   // Кэш историй по комнатам: { general: [...], random: [...] }
-  // shallowReactive — Vue отслеживает добавление/удаление ключей,
-  // но не уходит вглубь массивов. Глубину отслеживает messages = ref([]).
-  const messagesByRoom = shallowReactive({})
+  const messagesByRoom = reactive({})
+
+  const messages = computed(() => messagesByRoom[currentRoom.value] ?? [])
 
   const onlineUsers = ref([]) // ['Alex', 'Maria'] — онлайн в текущей комнате
   const typingUsers = ref([])
@@ -21,8 +20,6 @@ export function useChat({ on, send }) {
     if (currentRoom.value === room) return
     clearTimeout(stopTimer)
     currentRoom.value = room
-    // Показываем закэшированную историю пока сервер не пришлёт свежую
-    messages.value = messagesByRoom[room] ?? []
     onlineUsers.value = []
     typingUsers.value = []
     send({ type: 'join', room })
@@ -43,24 +40,24 @@ export function useChat({ on, send }) {
   // --- Обработчики входящих сообщений ---
 
   // Сервер прислал историю после join
-  on('history', ({ messages: hist }) => {
-    messagesByRoom[currentRoom.value] = hist
-    messages.value = hist
+  on('history', ({ room, messages: hist }) => {
+    messagesByRoom[room] = hist
   })
 
   // Новое сообщение в текущей комнате
   on('message', (msg) => {
-    messages.value.push(msg)
-    const room = currentRoom.value
+    const room = msg.room
+    if (!room) return
     if (!messagesByRoom[room]) messagesByRoom[room] = []
     messagesByRoom[room].push(msg)
   })
 
   // Кто-то поставил реакцию
   on('react', ({ messageId, emoji }) => {
-    const m = messages.value.find((m) => m.id === messageId)
+    const list = messagesByRoom[currentRoom.value]
+    if (!list) return
+    const m = list.find((m) => m.id === messageId)
     if (!m) return
-    // ??= — если reactions ещё нет, создаём объект
     m.reactions ??= {}
     m.reactions[emoji] = (m.reactions[emoji] ?? 0) + 1
   })

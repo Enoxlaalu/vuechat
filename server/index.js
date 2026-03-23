@@ -105,7 +105,7 @@ wss.on('connection', (ws) => {
       client.room = roomId
 
       // Отдаём историю только этому клиенту
-      send(ws, { type: 'history', messages: room.messages })
+      send(ws, { type: 'history', room: roomId, messages: room.messages })
 
       // Рассылаем всем в комнате (включая нового участника) обновлённый список
       broadcastUsers(roomId)
