@@ -1,3 +1,4 @@
+import { createServer } from 'http'
 import { WebSocketServer } from 'ws'
 import { randomUUID } from 'crypto'
 
@@ -21,7 +22,18 @@ const clients = new Map()
 rooms.set('general', { name: 'general', messages: [], members: new Set() })
 rooms.set('random', { name: 'random', messages: [], members: new Set() })
 
-const wss = new WebSocketServer({ port: PORT })
+const server = createServer((req, res) => {
+  if (req.url === '/ping') {
+    res.writeHead(200)
+    res.end('ok')
+  } else {
+    res.writeHead(404)
+    res.end()
+  }
+})
+
+const wss = new WebSocketServer({ server })
+server.listen(PORT)
 
 // --- Вспомогательные функции ---
 
@@ -201,4 +213,4 @@ wss.on('connection', (ws) => {
   })
 })
 
-console.log(`WebSocket server listening on port ${PORT}`)
+console.log(`Server listening on port ${PORT}`)

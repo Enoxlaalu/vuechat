@@ -10,12 +10,16 @@ export function useWebSocket(url) {
   // Реестр обработчиков: { 'message': [fn1, fn2], 'typing': [fn3], ... }
   // Обычный объект, не реактивный — нам не нужно отслеживать его изменения.
   const handlers = {}
+  const queue = []
+  const MAX_QUEUE = 20
 
   function connect() {
     ws.value = new WebSocket(url)
 
     ws.value.onopen = () => {
       connected.value = true
+      const socket = ws.value
+      while (queue.length) socket.send(queue.shift())
     }
 
     ws.value.onclose = () => {
@@ -41,12 +45,20 @@ export function useWebSocket(url) {
   // Можно вызвать несколько раз с одним type — все колбэки сработают.
   function on(type, fn) {
     ;(handlers[type] ??= []).push(fn)
+    return () => {
+      handlers[type] = handlers[type]?.filter(h => h !== fn)
+    }
   }
 
   // Отправить сообщение на сервер.
   // ?. — если соединение ещё не установлено, просто ничего не делаем.
   function send(msg) {
-    ws.value?.send(JSON.stringify(msg))
+    const data = JSON.stringify(msg)
+    if (ws.value?.readyState === WebSocket.OPEN) {
+      ws.value.send(data)
+    } else if (queue.length < MAX_QUEUE) {
+      queue.push(data)
+    }
   }
 
   // Lifecycle cleanup: когда компонент, который вызвал useWebSocket, размонтируется —
