@@ -9,7 +9,8 @@ import MessageList from './components/MessageList.vue'
 import MessageInput from './components/MessageInput.vue'
 import Toast from './components/Toast.vue'
 
-const { connected, connect, on, send } = useWebSocket('ws://localhost:8080')
+const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:8080'
+const { connected, connect, on, send } = useWebSocket(WS_URL)
 provide('ws', { connected, on, send })
 
 const chat = useChat({ on, send })

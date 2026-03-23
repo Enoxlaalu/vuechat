@@ -3,7 +3,7 @@ import { randomUUID } from 'crypto'
 
 const ALLOWED_EMOJI = ['👍', '❤️', '😂', '😮', '😢']
 
-const PORT = 8080
+const PORT = process.env.PORT ? Number(process.env.PORT) : 8080
 
 // Всё состояние — в памяти. При перезапуске сервера всё сбрасывается.
 //
@@ -201,4 +201,4 @@ wss.on('connection', (ws) => {
   })
 })
 
-console.log(`WebSocket server running on ws://localhost:${PORT}`)
+console.log(`WebSocket server listening on port ${PORT}`)
